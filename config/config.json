@@ -1,0 +1,59 @@
+{
+    "Exclusions": ["$$$favorites", "$$$views"],
+    "PropertyMappings": {
+        "~:user.property/MeetingType-ccwoUVDf": "meetingtype",
+        "~:user.property/Attendees2-Txm1J7db": "attendees",
+        "~:user.property/Company-NNcompt2": "company",
+        "~:user.property/Role-MvNVnxcq": "role",
+        "~:user.property/Type-WMWoPeRf": "persontype",
+        "~:user.property/Team-zdDsD1B0": "team",
+        "~:user.property/commercial-J3bYJ41P": "commercial",
+        "~:user.property/Assignee-Hle1-98t": "assignee",
+        "~:user.property/Participants-mbBmigAs": "participants",
+        "~:user.property/SourceCompany-ZGKNgpeM": "sourcecompany",
+        "~:user.property/Subcontractor-pFGixsXJ": "subcontractor",
+        "~:user.property/Location-HPCB1N2K": "location",
+        "~:user.property/Goal-spoThx_u": "goal",
+        "~:user.property/GoalCategory-rhotgQv_": "goalcategory",
+        "~:user.property/excused-FsA22yaM": "excused"
+    },
+    "PageOnlyPropertyMappings": {
+        "~:block/updated-at": "updated",
+        "~:block/created-at": "created",
+        "~:block/tags": "tags"
+    },
+    "ResolvableProps": [
+        "~:block/tags",
+        "~:block/refs",
+        "~:user.property/MeetingType-ccwoUVDf",
+        "~:user.property/Attendees2-Txm1J7db",
+        "~:user.property/Company-NNcompt2",
+        "~:user.property/Role-MvNVnxcq",
+        "~:user.property/Type-WMWoPeRf",
+        "~:user.property/Team-zdDsD1B0",
+        "~:user.property/commercial-J3bYJ41P",
+        "~:user.property/GoalCategory-rhotgQv_",
+        "~:user.property/excused-FsA22yaM"
+    ],
+    "TagsToPropertyMappings": {
+        "#Person": [
+            "type",
+            "person"
+        ],
+        "#Company": [
+            "type",
+            "company"
+        ],
+        "#Journal": [
+            "type",
+            "journal"
+        ], 
+        "#Team": [
+            "type",
+            "team"
+        ]
+    },
+    "DateMapping": [
+        "(\\d{2})-(\\d{2})-(\\d{4})", "$3-$2-$1"
+    ]
+}
