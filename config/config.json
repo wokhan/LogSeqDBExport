@@ -22,19 +22,6 @@
         "~:block/created-at": "created",
         "~:block/tags": "tags"
     },
-    "ResolvableProps": [
-        "~:block/tags",
-        "~:block/refs",
-        "~:user.property/MeetingType-ccwoUVDf",
-        "~:user.property/Attendees2-Txm1J7db",
-        "~:user.property/Company-NNcompt2",
-        "~:user.property/Role-MvNVnxcq",
-        "~:user.property/Type-WMWoPeRf",
-        "~:user.property/Team-zdDsD1B0",
-        "~:user.property/commercial-J3bYJ41P",
-        "~:user.property/GoalCategory-rhotgQv_",
-        "~:user.property/excused-FsA22yaM"
-    ],
     "TagsToPropertyMappings": {
         "#Person": [
             "type",
@@ -51,6 +38,10 @@
         "#Team": [
             "type",
             "team"
+        ],
+        "#Technology": [
+            "type",
+            "technology"
         ]
     },
     "DateMapping": [

@@ -4,12 +4,14 @@ namespace LogSeqDBExport;
 /// Command-line options for the extraction tool (database path, output
 /// directory, query/table selection and other flags).
 /// </summary>
-internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool IgnoreBuiltIn, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, bool UseTypeForFolder)
+internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool IgnoreBuiltIn, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, bool UseTypeForFolder, bool ResolveAliases)
 {
+
     public static Options Parse(string[] args)
     {
         string db = "", outDir = "", table = "kvs";
         string? query = null;
+        bool resolveAliases = true;
         bool includeBlockProps = true;
         bool ignoreBuiltIn = false;
         bool exportOnlyPageChildren = false;
@@ -27,21 +29,22 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
         foreach (var chunk in args.Chunk(2))
         {
             string a = chunk[0];
-            string next() => chunk[1];
+            string next = chunk[1];
 
             switch (a)
             {
-                case "--db": db = next(); break;
-                case "--out": outDir = next(); break;
-                case "--table": table = next(); break;
-                case "--query": query = next(); break;
-                case "--includeBlockProps": includeBlockProps = !bool.TryParse(next(), out var b) || b; break;
-                case "--ignoreBuiltIn": ignoreBuiltIn = bool.TryParse(next(), out var ib) && ib; break;
-                case "--intermediateFile": intermediateFile = next(); break;
-                case "--dboutputFile": dbOutputFile = next(); break;
-                case "--finalFile": finalFile = next(); break;
-                case "--exportOnlyPageChildren": exportOnlyPageChildren = bool.TryParse(next(), out var eopc) && eopc; break;
-                case "--useTypeForFolder": useTypeForFolder = bool.TryParse(next(), out var utff) && utff; break;
+                case "--db": db = next; break;
+                case "--out": outDir = next; break;
+                case "--resolveAliases": resolveAliases = GetBoolean(next, resolveAliases); break;
+                case "--table": table = next; break;
+                case "--query": query = next; break;
+                case "--includeBlockProps": includeBlockProps = GetBoolean(next, includeBlockProps); break;
+                case "--ignoreBuiltIn": ignoreBuiltIn = GetBoolean(next, ignoreBuiltIn); break;
+                case "--intermediateFile": intermediateFile = next; break;
+                case "--dboutputFile": dbOutputFile = next; break;
+                case "--finalFile": finalFile = next; break;
+                case "--exportOnlyPageChildren": exportOnlyPageChildren = GetBoolean(next, exportOnlyPageChildren); break;
+                case "--useTypeForFolder": useTypeForFolder = GetBoolean(next, useTypeForFolder); break;
             }
         }
 
@@ -51,7 +54,12 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
             Environment.Exit(2);
         }
 
-        return new Options(db, outDir, table, query, includeBlockProps, ignoreBuiltIn, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, useTypeForFolder);
+        return new Options(db, outDir, table, query, includeBlockProps, ignoreBuiltIn, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, useTypeForFolder, resolveAliases);
+    }
+
+    private static bool GetBoolean(string next, bool def)
+    {
+        return bool.TryParse(next, out var ra) ? ra : def;
     }
 
     private static void PrintUsage(string? db, string? outDir)
@@ -68,7 +76,7 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
 
         Console.Error.WriteLine();
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  dotnet run -- --db <sqlite-file> --out <output-dir> [options]");
+        Console.Error.WriteLine("  LogSeqDBExport --db <sqlite-file> --out <output-dir> [options]");
         Console.Error.WriteLine();
         Console.Error.WriteLine("Options:");
         Console.Error.WriteLine("  --db <sqlite-file>                Path to the Logseq SQLite database.");

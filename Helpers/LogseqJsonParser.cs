@@ -64,7 +64,7 @@ public static class LogseqJsonParser
         schema = allEntities.GroupBy(e => e.Id)
                             .Where(e => e.Any(ev => ev.Name == "~:db/ident"))
                             .ToDictionary(g => (string)g.First(ev => ev.Name == "~:db/ident")!.Value!, DBIdent.FromSourceEntities);
-        schema.Add("_default", new DBIdent("", true, false, x => x));
+        schema.Add("_default", new DBIdent("", true, false, x => x, false));
 
         return allEntities;
     }

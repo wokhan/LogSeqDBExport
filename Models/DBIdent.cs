@@ -1,10 +1,12 @@
+using System.Dynamic;
+
 namespace LogSeqDBExport;
 
 /// <summary>
 /// Represents a database identifier (schema entry) and provides value conversion
 /// logic based on the declared type and cardinality.
 /// </summary>
-public class DBIdent(object? name, bool isBuiltIn, bool isArray, Converter<object?, object?> converter)
+public class DBIdent(object? name, bool isBuiltIn, bool isArray, Converter<object?, object?> converter, bool isRefType)
 {
     private const string PROPERTY_PUBLIC = "~:logseq.property/public?";
     private const string PROPERTY_BUILTIN = "~:logseq.property/built-in?";
@@ -13,10 +15,13 @@ public class DBIdent(object? name, bool isBuiltIn, bool isArray, Converter<objec
     private const string CARDINALITY = "~:db/cardinality";
     private const string DBIDENT = "~:db/ident";
     private const string TITLE = "~:block/title";
+    private const string VALUE_REF = "~:db.type/ref";
 
     public object? Name { get; } = name;
     public bool IsBuiltIn { get; } = isBuiltIn;
     public bool IsArray { get; } = isArray;
+    public bool IsRefType { get; } = isRefType;
+
     public Converter<object?, object?> Converter { get; } = converter;
 
     public static DBIdent FromSourceEntities(IEnumerable<SourceEntity> sourceEntities)
@@ -26,11 +31,12 @@ public class DBIdent(object? name, bool isBuiltIn, bool isArray, Converter<objec
         var isBuiltIn = (bool)(sourceEntities.FirstOrDefault(se => se.Name == PROPERTY_BUILTIN)?.Value ?? false);
         var type = sourceEntities.FirstOrDefault(se => se.Name == TYPE)?.Value;
         var cardinality = sourceEntities.FirstOrDefault(se => se.Name == CARDINALITY)?.Value;
+        var isRefType = VALUE_REF.Equals(sourceEntities.FirstOrDefault(se => se.Name == VALUE_TYPE)?.Value);
 
         Converter<object?, object?> converter = type switch
         {
             "~:checkbox" => x => (bool?)x,
-            "~:datetime" => x => DateTime.FromFileTime((long?)(double?)x ?? 0),
+            "~:datetime" => x => DateTimeOffset.FromUnixTimeMilliseconds((long?)(double?)x ?? 0).DateTime,
             "~:raw-number" => x => (double?)x,
             "~:map" => x => ((List<object>)x!).Skip(1).Chunk(2).ToDictionary(x => x[0], x => x[1]),
             "~:number" => x => (double?)x,
@@ -48,7 +54,7 @@ public class DBIdent(object? name, bool isBuiltIn, bool isArray, Converter<objec
 
         var isArray = "~:db.cardinality/many".Equals(cardinality);
 
-        return new DBIdent(name, isBuiltIn, isArray, converter);
+        return new DBIdent(name, isBuiltIn, isArray, converter, isRefType);
     }
 
 
