@@ -91,16 +91,6 @@ public sealed class TransitLikeResolver
             return s;
         }
 
-        // // Cacheable value (disabled here — caching is done during InitCache)
-        // if (IsCacheable(s))
-        // {
-        //     var code = EncodeCacheCode(_nextCacheIndex++);
-        //     Console.WriteLine($"Caching '{s}' as {code}");
-
-        //     _cacheByCode[code] = s;
-        //     //done.Add(s);
-        // }
-
         return s;
     }
 

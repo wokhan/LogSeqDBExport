@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace LogSeqDBExport;
+namespace LogSeqDBExport.Models;
 
 /// <summary>
 /// Holds configuration settings such as property mappings, tag-to-property
@@ -9,6 +9,7 @@ namespace LogSeqDBExport;
 /// </summary>
 internal class Config
 {
+    public double DefaultImageWidth { get; set; } = 250;
     public List<string> Exclusions { get; set; } = [];
     public Dictionary<string, string[]> TagsToPropertyMappings { get; set; } = [];
     public Dictionary<string, string> PageOnlyPropertyMappings { get; set; } = [];
@@ -24,5 +25,11 @@ internal class Config
     internal static Config ReadFrom(string path)
     {
         return JsonSerializer.Deserialize<Config>(File.ReadAllText(path)) ?? new Config();
+    }
+
+    internal void EnsureDefaultMappings(bool keepAliases)
+    {
+        PropertyMappings.Add("~:block/tags", "tags");
+        PropertyMappings.Add("~:block/alias", "aliases");
     }
 }

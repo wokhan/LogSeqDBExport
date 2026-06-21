@@ -1,6 +1,5 @@
-using System.Globalization;
 using System.Text;
-using System.Text.Json;
+using LogSeqDBExport.Models;
 using YamlDotNet.Serialization;
 
 namespace LogSeqDBExport.Helpers;
@@ -30,11 +29,19 @@ internal static class RenderHelper
     }
 
 
-    public static void RenderPages(Options opt, Dictionary<double, Entity> entitiesById, Config config)
+    public static void RenderPages(Options opt, IEnumerable<Entity> entitiesById, Config config)
     {
-        foreach (var rootEntity in entitiesById.Values.Where(e => e.IsRootExportable && !string.IsNullOrWhiteSpace(e.DisplayTitle)))
+        foreach (var entity in entitiesById)
         {
-            RenderPage(opt, config, rootEntity);
+            if (!entity.IsRootExportable
+                || (opt.ExcludeDeleted && entity.IsDeleted)
+                || (entity.Contents is not null && config.Exclusions.Contains(entity.Contents))
+                || (opt.ResolveAliases && entity.AliasOf is not null))
+            {
+                continue;
+            }
+
+            RenderPage(opt, config, entity);
         }
     }
 
@@ -43,17 +50,17 @@ internal static class RenderHelper
         try
         {
             var basepath = options.OutDir;
-            if (options.UseTypeForFolder && rootEntity.FinalProperties.GetValueOrDefault("type", "_other") is string type)
+            if (options.UseTypeForFolder && rootEntity.Properties.GetValueOrDefault("type", "_other") is string type)
             {
                 basepath = Path.Combine(basepath, type);
             }
             Directory.CreateDirectory(basepath);
 
-            var path = Path.Combine(basepath, $"{rootEntity.DisplayTitle}.md");
+            var path = Path.Combine(basepath, $"{rootEntity.Contents}.md");
 
             var sb = new StringBuilder(5000);
 
-            RenderFrontMatterHeader(rootEntity.FinalProperties, sb);
+            RenderFrontMatterHeader(rootEntity.Properties, sb);
 
             RenderChildren(rootEntity.Id, rootEntity, sb, config, options, 0);
 
@@ -67,29 +74,39 @@ internal static class RenderHelper
 
     private static void RenderChildren(double rootPageId, Entity entity, StringBuilder sb, Config config, Options options, int indentLevel = 0)
     {
-        var filtered = !options.ExportOnlyPageChildren ? entity.Children : entity.Children.Where(c => c.Properties["~:block/page"] is double pageId && pageId == rootPageId);
+        var filtered = !options.ExportOnlyPageChildren ? entity.Children : entity.Children.Where(c => c.RawProperties["~:block/page"] is double pageId && pageId == rootPageId);
         foreach (var child in filtered)
         {
             sb.Append(new String('\t', indentLevel)).Append("- ");
 
             if (child.IsPage)
             {
-                sb.AppendLine($"[[{child.DisplayTitle}]]");
+                sb.AppendLine($"[[{child.Contents}]]");
 
-                RenderPage(options, config, child);
+                if (!child.IsDeleted && child.Contents is not null && !config.Exclusions.Contains(child.Contents))
+                {
+                    RenderPage(options, config, child);
+                }
                 continue;
             }
 
-            sb.Append(child.DisplayTitle);
+            sb.Append(child.Contents);
 
-            if (child.FinalProperties.TryGetValue("tags", out object? value) && value is object[] tags)
+            if (child.Properties.TryGetValue("~block/tags", out object? value) && value is object[] tags)
             {
                 sb.Append(' ').Append(String.Join(" ", tags));
             }
 
             sb.AppendLine();
 
-            RenderProperties(child.FinalProperties, sb, indentLevel);
+            RenderProperties(child.Properties, sb, indentLevel);
+
+            if (child.AssetType is not null)
+            {
+                sb.Append(new String('\t', indentLevel + 1))
+                  .AppendLine($"- ![[assets/{child.UUID}.{child.AssetType}|{config.DefaultImageWidth}]]");
+            }
+
 
             RenderChildren(rootPageId, child, sb, config, options, indentLevel + 1);
         }

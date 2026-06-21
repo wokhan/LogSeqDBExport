@@ -1,10 +1,10 @@
-namespace LogSeqDBExport;
+namespace LogSeqDBExport.Models;
 
 /// <summary>
 /// Command-line options for the extraction tool (database path, output
 /// directory, query/table selection and other flags).
 /// </summary>
-internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool IgnoreBuiltIn, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, bool UseTypeForFolder, bool ResolveAliases)
+internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, bool UseTypeForFolder, bool ResolveAliases, bool ExcludeDeleted)
 {
 
     public static Options Parse(string[] args)
@@ -13,9 +13,9 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
         string? query = null;
         bool resolveAliases = true;
         bool includeBlockProps = true;
-        bool ignoreBuiltIn = false;
         bool exportOnlyPageChildren = false;
         bool useTypeForFolder = false;
+        bool excludeDeleted = true;
         string? intermediateFile = null;
         string? dbOutputFile = null;
         string? finalFile = null;
@@ -28,23 +28,23 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
 
         foreach (var chunk in args.Chunk(2))
         {
-            string a = chunk[0];
-            string next = chunk[1];
+            string option = chunk[0];
+            string val = chunk[1];
 
-            switch (a)
+            switch (option)
             {
-                case "--db": db = next; break;
-                case "--out": outDir = next; break;
-                case "--resolveAliases": resolveAliases = GetBoolean(next, resolveAliases); break;
-                case "--table": table = next; break;
-                case "--query": query = next; break;
-                case "--includeBlockProps": includeBlockProps = GetBoolean(next, includeBlockProps); break;
-                case "--ignoreBuiltIn": ignoreBuiltIn = GetBoolean(next, ignoreBuiltIn); break;
-                case "--intermediateFile": intermediateFile = next; break;
-                case "--dboutputFile": dbOutputFile = next; break;
-                case "--finalFile": finalFile = next; break;
-                case "--exportOnlyPageChildren": exportOnlyPageChildren = GetBoolean(next, exportOnlyPageChildren); break;
-                case "--useTypeForFolder": useTypeForFolder = GetBoolean(next, useTypeForFolder); break;
+                case "--db": db = val; break;
+                case "--out": outDir = val; break;
+                case "--resolveAliases": resolveAliases = GetBoolean(val, resolveAliases); break;
+                case "--table": table = val; break;
+                case "--query": query = val; break;
+                case "--includeBlockProps": includeBlockProps = GetBoolean(val, includeBlockProps); break;
+                case "--intermediateFile": intermediateFile = val; break;
+                case "--dboutputFile": dbOutputFile = val; break;
+                case "--finalFile": finalFile = val; break;
+                case "--exportOnlyPageChildren": exportOnlyPageChildren = GetBoolean(val, exportOnlyPageChildren); break;
+                case "--useTypeForFolder": useTypeForFolder = GetBoolean(val, useTypeForFolder); break;
+                case "--excludeDeleted": excludeDeleted = GetBoolean(val, excludeDeleted); break;
             }
         }
 
@@ -54,7 +54,7 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
             Environment.Exit(2);
         }
 
-        return new Options(db, outDir, table, query, includeBlockProps, ignoreBuiltIn, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, useTypeForFolder, resolveAliases);
+        return new Options(db, outDir, table, query, includeBlockProps, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, useTypeForFolder, resolveAliases, excludeDeleted);
     }
 
     private static bool GetBoolean(string next, bool def)
@@ -84,7 +84,6 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
         Console.Error.WriteLine("  --table <table-name>              Table to read (default: kvs).");
         Console.Error.WriteLine("  --query <sql>                     Optional SQL query to override the default select.");
         Console.Error.WriteLine("  --includeBlockProps true|false    Include block properties in output (default: true).");
-        Console.Error.WriteLine("  --ignoreBuiltIn true|false        Ignore built-in properties (default: false).");
         Console.Error.WriteLine("  --exportOnlyPageChildren true|false  Export only page direct children (not transitive ones) (default: false).");
         Console.Error.WriteLine("  --useTypeForFolder true|false     Create folders by type when exporting pages (default: false).");
         Console.Error.WriteLine("  --intermediateFile <file>         Write intermediate JSON to file.");

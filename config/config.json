@@ -1,4 +1,5 @@
 {
+    "DefaultImageWidth": 300,
     "Exclusions": ["$$$favorites", "$$$views"],
     "PropertyMappings": {
         "~:user.property/MeetingType-ccwoUVDf": "meetingtype",
@@ -19,27 +20,26 @@
     },
     "PageOnlyPropertyMappings": {
         "~:block/updated-at": "updated",
-        "~:block/created-at": "created",
-        "~:block/tags": "tags"
+        "~:block/created-at": "created"
     },
     "TagsToPropertyMappings": {
-        "#Person": [
+        "Person": [
             "type",
             "person"
         ],
-        "#Company": [
+        "Company": [
             "type",
             "company"
         ],
-        "#Journal": [
+        "Journal": [
             "type",
             "journal"
         ], 
-        "#Team": [
+        "Team": [
             "type",
             "team"
         ],
-        "#Technology": [
+        "Technology": [
             "type",
             "technology"
         ]

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using LogSeqDBExport.Models;
 
 namespace LogSeqDBExport.Helpers;
 
@@ -11,38 +12,17 @@ public static class LogseqJsonParser
 {
     sealed record RootItem(string content);
 
-    public static List<SourceEntity> ParseEntitiesFromFile(string filePath)
+    public static List<SourceEntry> ParseEntitiesFromFile(string filePath)
     {
         var json = File.ReadAllText(filePath);
-        return ParseEntities(json, out var schema);
+        return ParseSourceEntries(json);
     }
 
-    public static List<SourceEntity> ParseEntities(string json, out Dictionary<string, DBIdent> schema)
+    public static List<SourceEntry> ParseSourceEntries(string json)
     {
         var rootItems = JsonSerializer.Deserialize<List<RootItem>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
 
-        var allEntities = new List<SourceEntity>();
-
-
-        // foreach (var item in rootItems)
-        // {
-        //     var normalizedContent = WebUtility.HtmlDecode(item.content);
-        //     var doc = JsonDocument.Parse(normalizedContent);
-        //     resolver.InitCache(doc.RootElement);
-        // }
-
-        // var decodedRoot = (List<object>)((List<object>)DecodeItem(rootItems[0], resolver)!)[2];
-        // var t = decodedRoot.Select((it, i) => (it, i))
-        //            .Where(x => x.it is string key && key.StartsWith("~:"))
-        //            //.DistinctBy(s => s.it)
-        //            .ToLookup(x => (string)decodedRoot[x.i], x =>  DBIdent.CreateFromSchemaEntry(decodedRoot[x.i + 1]));
-
-        // if (!TryGetInnerArray(decodedRoot, out var schemaArray, "~:schema"))
-        // {
-        //     Console.WriteLine("Unable to decode schema, aborting.");
-        // }
-
-        //schemaArray.ToDictionary(sa => sa[0], sa => sa[1]);
+        var allEntities = new List<SourceEntry>();
 
         foreach (var item in rootItems)
         {
@@ -55,16 +35,11 @@ public static class LogseqJsonParser
 
             if (TryGetInnerArray(decoded, out var keysArray))
             {
-                allEntities.AddRange(keysArray.Select(MapToEntity).Where(e => e is not null)!);
+                allEntities.AddRange(keysArray.Select(FromRow).Where(e => e is not null)!);
             }
         }
 
         allEntities = allEntities.DistinctBy(e => (e.Id, e.Name, JsonSerializer.Serialize(e.Value), e.Transaction)).ToList();
-
-        schema = allEntities.GroupBy(e => e.Id)
-                            .Where(e => e.Any(ev => ev.Name == "~:db/ident"))
-                            .ToDictionary(g => (string)g.First(ev => ev.Name == "~:db/ident")!.Value!, DBIdent.FromSourceEntities);
-        schema.Add("_default", new DBIdent("", true, false, x => x, false));
 
         return allEntities;
     }
@@ -96,7 +71,7 @@ public static class LogseqJsonParser
         return false;
     }
 
-    private static SourceEntity? MapToEntity(List<object?> row)
+    private static SourceEntry? FromRow(List<object?> row)
     {
         if (row.Count < 4)
         {
@@ -104,7 +79,6 @@ public static class LogseqJsonParser
             return null;
         }
 
-        return new SourceEntity((double)row[0]!, row[1]!.ToString() ?? "", row[2], (long)(double)row[3]!);
+        return new SourceEntry((double)row[0]!, row[1]!.ToString() ?? "", row[2], (double)row[3]!);
     }
-
 }
