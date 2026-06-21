@@ -92,9 +92,9 @@ internal static class RenderHelper
 
             sb.Append(child.Contents);
 
-            if (child.Properties.TryGetValue("~block/tags", out object? value) && value is object[] tags)
+            if (child.Properties.TryGetValue("tags", out object? value) && value is object[] tags)
             {
-                sb.Append(' ').Append(String.Join(" ", tags));
+                sb.Append(' ').Append(String.Join(" ", tags.Select(tag => $"#{tag}")));
             }
 
             sb.AppendLine();
