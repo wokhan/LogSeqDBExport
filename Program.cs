@@ -65,7 +65,7 @@ internal static partial class Program
         var userprops = entitiesById.SelectMany(e => e.Value.RawProperties.Where(prop => prop.Key.StartsWith("~:user.property/")).Select(e => e.Key))
                                     .Distinct()
                                     .Order()
-                                    .ToDictionary(key => key, config.PagePropertyMappings.ContainsKey);
+                                    .ToDictionary(key => key, config.Mappings.ContainsKey);
 
         using var stream = Console.OpenStandardOutput();
         JsonSerializer.Serialize(stream, userprops, serializerOptions);

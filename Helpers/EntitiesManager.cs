@@ -5,6 +5,7 @@ namespace LogSeqDBExport.Helpers;
 
 internal static partial class EntitiesManager
 {
+    private static double PageTagId = 0;
 
     internal static Dictionary<double, Entity> FromSourceEntries(List<SourceEntry> sourceEntries, out Dictionary<string, PropertyType> schema)
     {
@@ -12,7 +13,9 @@ internal static partial class EntitiesManager
                                        .Where(e => e.Any(ev => ev.Name == PropertyType.DBIDENT))
                                        .ToDictionary(g => (string)g.First(ev => ev.Name == PropertyType.DBIDENT)!.Value!, PropertyType.FromSourceEntries);
 
-        localschema.Add("_default", new PropertyType("", true, false, x => x, false));
+        localschema.Add("_default", new PropertyType(0, "", true, false, x => x, false));
+
+        PageTagId = localschema["~:logseq.class/Page"].Id;
 
         schema = localschema;
 
@@ -30,22 +33,20 @@ internal static partial class EntitiesManager
 
     private static void SetAliases(Dictionary<double, Entity> entitiesById)
     {
-        var x = entitiesById.Values.Where(e => e.RawProperties.ContainsKey("~:block/alias"))
-                                   .SelectMany(e => e.RawProperties.TryGetValue("~:block/alias", out var aliases) && aliases is object[] aliasesArray ? aliasesArray.Select(alias => (aliasId: (double)alias, e)) : []);
-        foreach (var (aliasId, targetEntity) in x)
+        var aliasMappings = entitiesById.Values.Where(e => e.RawProperties.ContainsKey("~:block/alias"))
+                                               .SelectMany(e => e.RawProperties.TryGetValue("~:block/alias", out var aliases) && aliases is object[] aliasesArray ? aliasesArray.Select(alias => (aliasId: (double)alias, e)) : []);
+        foreach (var (aliasId, targetEntity) in aliasMappings)
         {
             entitiesById[aliasId].AliasOf = targetEntity;
         }
     }
 
-    private static Entity CreateEntity(IGrouping<double, SourceEntry> g, Dictionary<string, PropertyType> schema)
+    private static Entity CreateEntity(IGrouping<double, SourceEntry> sourceEntriesById, Dictionary<string, PropertyType> schema)
     {
-        var properties = g.GroupBy(it => it.Name)
-                          .ToDictionary(it => it.Key, it => schema.GetValueOrDefault(it.Key, schema["_default"]).GetValue(it.Select(a => a.Value)));
+        var properties = sourceEntriesById.GroupBy(it => it.Name)
+                                          .ToDictionary(it => it.Key, it => schema.GetValueOrDefault(it.Key, schema["_default"]).GetValue(it));
 
-        var realprops = g.GroupBy(it => it.Name).ToDictionary(it => it.Key, it => Property.FromSourceEntries(it, schema));
-
-        return new Entity(g.Key, properties, realprops, []);
+        return new Entity(sourceEntriesById.Key, properties);
     }
 
 
@@ -54,51 +55,102 @@ internal static partial class EntitiesManager
         var entitiesByUUID = entitiesById.Values.Where(e => e.UUID != Entity.EmptyUUID)
                                                 .ToDictionary(e => e.UUID, e => e);
 
-        foreach (var (id, entity) in entitiesById)
+        foreach (var entity in entitiesById.Values)
         {
-            ResolveAndMapProperties(entitiesById, schema, options, config, entitiesByUUID, entity);
+            ResolveAndMapProperties(entity, schema, options, config, entitiesById, entitiesByUUID);
         }
     }
 
-    private static void ResolveAndMapProperties(Dictionary<double, Entity> entitiesById, Dictionary<string, PropertyType> schema, Options options, Config config, Dictionary<string, Entity> entitiesByUUID, Entity entity)
+    private static void ResolveAndMapProperties(Entity entity, Dictionary<string, PropertyType> schema, Options options, Config config, Dictionary<double, Entity> entitiesById, Dictionary<string, Entity> entitiesByUUID)
     {
         if (entity.RawProperties.TryGetValue("~:block/title", out var title) && title is string titleStr)
         {
             titleStr = ReplaceUuidLinks(titleStr, entitiesByUUID, options);
             titleStr = FormatDateRef(titleStr, config.DateMappingReg.Key, config.DateMappingReg.Value);
+            titleStr = FixTilde(titleStr);
 
             entity.Contents = titleStr;
         }
 
-        var propertyMappings = entity.IsPage ? config.PagePropertyMappings : config.PropertyMappings;
-        var mappedProperties = entity.RawProperties.Where(p => propertyMappings.ContainsKey(p.Key))
-                                                   .Select(e => (SourceKey: e.Key, TargetKey: propertyMappings[e.Key], Value: e.Value));
-
-        foreach (var (SourceKey, TargetKey, Value) in mappedProperties)
+        foreach (var property in entity.RawProperties)
         {
-            object? targetValue = Value;
+            object? targetValue = property.Value;
 
-            //Embed type in property directly? Like property.Type.IsRefType ?
-            if (schema.TryGetValue(SourceKey, out var schemaEntry) && schemaEntry.IsRefType)
+            // Embed type in property directly? Like property.Type.IsRefType ?
+            if (schema.TryGetValue(property.Key, out var schemaEntry) && schemaEntry.IsRefType)
             {
-                var needsAliasResolve = options.ResolveAliases && SourceKey != "~:block/alias";
+                var needsAliasResolve = options.ResolveAliases && property.Key != "~:block/alias";
                 targetValue = ResolveEntityRefs(targetValue, entitiesById, needsAliasResolve);
             }
 
-            entity.Properties[TargetKey] = targetValue;
-
-            if (TargetKey == "tags" && targetValue is object[] tags)
+            if (config.Mappings.TryGetValue(property.Key, out var mapping))
             {
-                foreach (var mapping in config.TagsToPropertyMappings)
+                if (!IsPage(entity) && mapping.Scope == Config.ScopeType.Page)
                 {
-                    if (tags.Contains(mapping.Key))
+                    continue;
+                }
+
+                if (mapping.ValueMappings.Count > 0)
+                {
+                    foreach (var map in mapping.ValueMappings)
                     {
-                        entity.Properties[mapping.Value[0]] = mapping.Value[1];
+                        if (((targetValue as object[])?.Contains(map.Key) ?? false) || map.Key.Equals(targetValue))
+                        {
+                            SetMappedProperty(entity, mapping, mapping.Target, map.Value);
+                        }
+                    }
+
+                    //TODO: exclude mapped values (or add option to consider if required or not)
+                    if (mapping.UnmappedTarget is not null)
+                    {
+                        SetMappedProperty(entity, mapping, mapping.UnmappedTarget, targetValue);
                     }
                 }
+                else if (mapping.Mode != Config.ModeType.Property || mapping.Target is not null)
+                {
+                    SetMappedProperty(entity, mapping, mapping.Target, targetValue);
+                }
             }
-
         }
+    }
+
+    private static void SetMappedProperty(Entity entity, Config.MappingConfig mapping, string? targetPropertyKey, object? targetValue)
+    {
+        var formattedValue = (object?)(targetValue as object[])?.Select(v => String.Format(mapping.Format, v)).ToArray() ?? String.Format(mapping.Format, targetValue);
+        
+        switch (mapping.Mode)
+        {
+            case Config.ModeType.Property:
+                if (targetPropertyKey is null)
+                {
+                    throw new NullReferenceException($"A target property key must be specified when using the Property mode.");
+                }
+                entity.Properties[targetPropertyKey] = formattedValue;
+                break;
+
+            case Config.ModeType.Append:
+                entity.Contents += " " + formattedValue;
+                break;
+
+            case Config.ModeType.Prepend:
+                entity.Contents = $"{formattedValue} {entity.Contents}";
+                break;
+        }
+    }
+
+    private static bool IsPage(Entity entity)
+    {
+        return entity.RawProperties.TryGetValue("~:block/tags", out var tags) && tags is object[] tagsArray && tagsArray.Contains(PageTagId);
+    }
+
+    private static string FixTilde(string titleStr)
+    {
+        if (titleStr.StartsWith("~~~"))
+        {
+            return titleStr[1..];
+        }
+
+        return titleStr;
     }
 
     private static string FormatDateRef(string input, Regex key, string targetFormat)

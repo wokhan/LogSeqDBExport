@@ -99,7 +99,7 @@ public sealed class TransitLikeResolver
         return s.Length == 2 && s[0] == '^' && s != "^ ";
     }
 
-    private bool IsCacheable(string? s)
+    private static bool IsCacheable(string? s)
     {
         return s is not null && (s.StartsWith("~:") || s.StartsWith("~#")); //&& s != "~:keys"
     }

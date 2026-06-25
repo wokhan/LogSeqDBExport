@@ -4,7 +4,7 @@ namespace LogSeqDBExport.Models;
 /// Command-line options for the extraction tool (database path, output
 /// directory, query/table selection and other flags).
 /// </summary>
-internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, bool UseTypeForFolder, bool ResolveAliases, bool ExcludeDeleted)
+internal sealed record Options(string DbPath, string OutDir, string Table, string? Query, bool IncludeBlockProps, bool ExportOnlyPageChildren, string? IntermediateFile, string? DbOutputFile, string? FinalFile, string? UsePropertyForFolder, bool ResolveAliases, bool ExcludeDeleted)
 {
 
     public static Options Parse(string[] args)
@@ -14,8 +14,8 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
         bool resolveAliases = true;
         bool includeBlockProps = true;
         bool exportOnlyPageChildren = false;
-        bool useTypeForFolder = false;
         bool excludeDeleted = true;
+        string? usePropertyForFolder = null;
         string? intermediateFile = null;
         string? dbOutputFile = null;
         string? finalFile = null;
@@ -43,7 +43,7 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
                 case "--dboutputFile": dbOutputFile = val; break;
                 case "--finalFile": finalFile = val; break;
                 case "--exportOnlyPageChildren": exportOnlyPageChildren = GetBoolean(val, exportOnlyPageChildren); break;
-                case "--useTypeForFolder": useTypeForFolder = GetBoolean(val, useTypeForFolder); break;
+                case "--usePropertyForFolder": usePropertyForFolder = val; break;
                 case "--excludeDeleted": excludeDeleted = GetBoolean(val, excludeDeleted); break;
             }
         }
@@ -54,7 +54,7 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
             Environment.Exit(2);
         }
 
-        return new Options(db, outDir, table, query, includeBlockProps, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, useTypeForFolder, resolveAliases, excludeDeleted);
+        return new Options(db, outDir, table, query, includeBlockProps, exportOnlyPageChildren, intermediateFile, dbOutputFile, finalFile, usePropertyForFolder, resolveAliases, excludeDeleted);
     }
 
     private static bool GetBoolean(string next, bool def)
@@ -84,8 +84,10 @@ internal sealed record Options(string DbPath, string OutDir, string Table, strin
         Console.Error.WriteLine("  --table <table-name>              Table to read (default: kvs).");
         Console.Error.WriteLine("  --query <sql>                     Optional SQL query to override the default select.");
         Console.Error.WriteLine("  --includeBlockProps true|false    Include block properties in output (default: true).");
+        Console.Error.WriteLine("  --resolveAliases true|false       Resolve LogSeq aliases when rendering links and page titles (default: true).");
+        Console.Error.WriteLine("  --excludeDeleted true|false       Exclude deleted entities from output (default: true).");
         Console.Error.WriteLine("  --exportOnlyPageChildren true|false  Export only page direct children (not transitive ones) (default: false).");
-        Console.Error.WriteLine("  --useTypeForFolder true|false     Create folders by type when exporting pages (default: false).");
+        Console.Error.WriteLine("  --usePropertyForFolder <property-key>  Create folders by mapped property value for each root page.");
         Console.Error.WriteLine("  --intermediateFile <file>         Write intermediate JSON to file.");
         Console.Error.WriteLine("  --dboutputFile <file>             Write raw DB export to file.");
         Console.Error.WriteLine("  --finalFile <file>                Write final JSON output to file.");

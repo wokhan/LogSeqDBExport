@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using LogSeqDBExport.Models;
 
@@ -57,14 +58,23 @@ public static class LogseqJsonParser
 
     private static bool TryGetInnerArray(object? decodedRoot, out List<List<object?>> innerArray, string key = "~:keys")
     {
-
-        if (decodedRoot is List<object?> rootList
-            && rootList.Count >= 3
-            && key.Equals(rootList[1])
-            && rootList[2] is List<object?> outerArray)
+        if (decodedRoot is List<object?> rootList && rootList.Count >= 3)
         {
-            innerArray = [.. outerArray.OfType<List<object?>>()];
-            return true;
+            List<object?>? outerArray = null;
+            if (key.Equals(rootList[1]))
+            {
+                outerArray = rootList[2] as List<object?>;
+            }
+            else if (rootList[0] is List<object>)
+            {
+                outerArray = rootList[1] as List<object?>;
+            }
+
+            if (outerArray is not null)
+            {
+                innerArray = [.. outerArray.OfType<List<object?>>()];
+                return true;
+            }
         }
 
         innerArray = [];

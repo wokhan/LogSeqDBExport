@@ -6,7 +6,7 @@ namespace LogSeqDBExport.Models;
 /// <summary>
 /// Base class to represent an entity extracted from the dump, with its ID, properties (as a lookup to handle multi-valued entries) and its children.
 /// </summary>
-internal class Entity(double id, Dictionary<string, object?> rawProperties, Dictionary<string, Property> realprops, List<Entity> children) : IComparable
+internal class Entity(double id, Dictionary<string, object?> rawProperties) : IComparable
 {
     private const string ASSET_TYPE = "~:logseq.property.asset/type";
     private const string ASSET_WIDTH = "~:logseq.property.asset/width";
@@ -15,6 +15,7 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties, Dict
     private const string BLOCK_UUID = "~:block/uuid";
     private const string BLOCK_TITLE = "~:block/title";
     private const string BLOCK_ORDER = "~:block/order";
+    private const string BLOCK_PAGE = "~:block/page";
     internal static readonly string EmptyUUID = Guid.Empty.ToString("N");
 
     public double Id { get; } = id;
@@ -33,13 +34,13 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties, Dict
 
     public double? AssetWidth => (double?)RawProperties.GetValueOrDefault(ASSET_WIDTH, null);
 
-    private bool? _istag;
 
     public bool IsDeleted => RawProperties.ContainsKey(PROPERTY_DELETED_AT);
 
-    public bool IsRootExportable => Properties.TryGetValue("tags", out var prop) && prop is object[] propArray && propArray.ContainsAny("Page", "Journal");
+    public bool IsRootExportable => Properties.TryGetValue("tags", out var tags) && tags is object[] propArray && propArray.ContainsAny("Page", "Journal");
 
-    public bool IsTag => _istag ??= Properties.TryGetValue("tags", out var prop) && prop is object[] propArray && propArray.Contains("Tag");
+    private bool? _istag; 
+    public bool IsTag => _istag ??= Properties.TryGetValue("tags", out var tags) && tags is object[] propArray && propArray.Contains("Tag");
 
     public bool IsPage => Properties.TryGetValue("tags", out var tags) && tags is object[] tagsArray && tagsArray.Contains("Page");
 
@@ -49,14 +50,14 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties, Dict
     [JsonPropertyName("AliasOf")]
     public double? AliasOfId => AliasOf?.Id;
 
-    public Dictionary<string, object?> RawProperties { get; set; } = rawProperties;
+    public double? PageId => RawProperties.TryGetValue(BLOCK_PAGE, out var pageId) ? (double?)pageId : null;
 
-    public Dictionary<string, object?> Properties { get; set; } = [];
+    public Dictionary<string, object?> RawProperties { get; } = rawProperties;
 
-    public Dictionary<string, Property> RealProperties { get; set; } = realprops;
+    public Dictionary<string, object?> Properties { get; } = [];
 
     [JsonIgnore]
-    public List<Entity> Children { get; set; } = children;
+    public List<Entity> Children { get; } = [];
 
     [JsonPropertyName("Children")]
     public List<double> ChildrenSerialized => [.. Children.Select(e => e.Id)];
@@ -72,7 +73,7 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties, Dict
         ((Entity)obj).RawProperties.TryGetValue(BLOCK_ORDER, out var orderB);
 
         if (orderA is string oa && orderB is string ob)
-            return oa.CompareTo(ob, StringComparison.InvariantCulture);
+            return oa.CompareTo(ob, StringComparison.Ordinal);
 
         if (orderA is string) return -1;
 

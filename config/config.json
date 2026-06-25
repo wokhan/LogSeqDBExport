@@ -1,50 +1,133 @@
 {
     "DefaultImageWidth": 300,
-    "Exclusions": ["$$$favorites", "$$$views"],
-    "PropertyMappings": {
-        "~:user.property/MeetingType-ccwoUVDf": "meetingtype",
-        "~:user.property/Attendees2-Txm1J7db": "attendees",
-        "~:user.property/Company-NNcompt2": "company",
-        "~:user.property/Role-MvNVnxcq": "role",
-        "~:user.property/Type-WMWoPeRf": "persontype",
-        "~:user.property/Team-zdDsD1B0": "team",
-        "~:user.property/commercial-J3bYJ41P": "commercial",
-        "~:user.property/Assignee-Hle1-98t": "assignee",
-        "~:user.property/Participants-mbBmigAs": "participants",
-        "~:user.property/SourceCompany-ZGKNgpeM": "sourcecompany",
-        "~:user.property/Subcontractor-pFGixsXJ": "subcontractor",
-        "~:user.property/Location-HPCB1N2K": "location",
-        "~:user.property/Goal-spoThx_u": "goal",
-        "~:user.property/GoalCategory-rhotgQv_": "goalcategory",
-        "~:user.property/excused-FsA22yaM": "excused"
-    },
-    "PageOnlyPropertyMappings": {
-        "~:block/updated-at": "updated",
-        "~:block/created-at": "created"
-    },
-    "TagsToPropertyMappings": {
-        "Person": [
-            "type",
-            "person"
-        ],
-        "Company": [
-            "type",
-            "company"
-        ],
-        "Journal": [
-            "type",
-            "journal"
-        ], 
-        "Team": [
-            "type",
-            "team"
-        ],
-        "Technology": [
-            "type",
-            "technology"
-        ]
+    "Exclusions": [
+        "$$$favorites",
+        "$$$views",
+        "Recycle",
+        "Quick add",
+        "Contents",
+        "Library"
+    ],
+    "Mappings": {
+        "~:user.property/MeetingType-ccwoUVDf": {
+            "Target": "meetingtype"
+        },
+        "~:user.property/Attendees2-Txm1J7db": {
+            "Target": "attendees"
+        },
+        "~:user.property/Participants-mbBmigAs": {
+            "Target": "participants"
+        },
+        "~:user.property/excused-FsA22yaM": {
+            "Target": "excused"
+        },
+        "~:user.property/Company-NNcompt2": {
+            "Target": "company"
+        },
+        "~:user.property/CompanyType-Uye4u69c": {
+            "Target": "companytype"
+        },
+        "~:user.property/SourceCompany-ZGKNgpeM": {
+            "Target": "sourcecompany"
+        },
+        "~:user.property/Subcontractor-pFGixsXJ": {
+            "Target": "subcontractor"
+        },
+        "~:user.property/Location-HPCB1N2K": {
+            "Target": "location"
+        },
+        "~:user.property/Role-MvNVnxcq": {
+            "Target": "role"
+        },
+        "~:user.property/Type-WMWoPeRf": {
+            "Target": "persontype"
+        },
+        "~:user.property/Team-zdDsD1B0": {
+            "Target": "team"
+        },
+        "~:user.property/commercial-J3bYJ41P": {
+            "Target": "commercial"
+        },
+        "~:user.property/Goal-spoThx_u": {
+            "Target": "goal"
+        },
+        "~:user.property/GoalCategory-rhotgQv_": {
+            "Target": "goalcategory"
+        },
+        "~:user.property/Context-vmd1-e24": {
+            "Target": "context"
+        },
+        "~:user.property/Assignee-Hle1-98t": {
+            "Target": "assignee"
+        },
+        "~:user.property/Importance-wdp0OL0Z": {
+            "Target": "importance"
+        },
+        "~:user.property/Reason-hLioBfoW": {
+            "Target": "reason"
+        },
+        "~:block/tags": {
+            "Target": "type",
+            "UnmappedTarget": "tags",
+            "ValueMappings": {
+                "Person": "person",
+                "Company": "company",
+                "Journal": "journal",
+                "Team": "team",
+                "Technology": "technology"
+            }
+        },
+        "~:block/updated-at": {
+            "Scope": "page",
+            "Format": "{0:yyyy-MM-ddTHH:mm:ss}",
+            "Target": "updated"
+        },
+        "~:block/created-at": {
+            "Scope": "page",
+            "Format": "{0:yyyy-MM-ddTHH:mm:ss}",
+            "Target": "created"
+        },
+        "~:logseq.property/status": {
+            "Mode": "prepend",
+            "ValueMappings": {
+                "Todo": "[ ]",
+                "Pending": "[/]",
+                "Doing": "[/]",
+                "Done": "[X]",
+                "Canceled": "[-]",
+                "In Review": "[?]",
+                "Backlog": "[~]"
+            }
+        },
+        "~:logseq.property/priority": {
+            "Mode": "append",
+            "ValueMappings": {
+                "Low": "🔽",
+                "Medium": "🔼",
+                "High": "⏫",
+                "Urgent": "🔺",
+                "None": ""
+            }
+        },
+        "~:logseq.property/scheduled": {
+            "Mode": "append",
+            "Format": "⏳ {0:yyyy-MM-dd}"
+        },
+        "~:logseq.property/deadline": {
+            "Mode": "append",
+            "Format": " 📅 {0:yyyy-MM-dd}"
+        },
+        // "~:logseq.property.repeat/recur-frequency": {
+        //     "Mode": "append",
+        //     "Format": "🔁 {0}"
+        // },
+        "~:logseq.property.repeat/recur-unit": {
+            "Mode": "append",
+            "Format": "🔁 every {0}"
+        }
     },
     "DateMapping": [
-        "(\\d{2})-(\\d{2})-(\\d{4})", "$3-$2-$1"
+        "(\\d{2})-(\\d{2})-(\\d{4})",
+        "$3-$2-$1"
     ]
 }

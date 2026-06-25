@@ -9,12 +9,13 @@ namespace LogSeqDBExport.Helpers;
 /// </summary>
 internal static class RenderHelper
 {
+    static readonly ISerializer serializer = new SerializerBuilder().Build();
+
     private static void RenderFrontMatterHeader(Dictionary<string, object?> properties, StringBuilder sb)
     {
         sb.AppendLine("---");
-        var serializer = new SerializerBuilder().Build();
         var yaml = serializer.Serialize(properties);
-        sb.AppendLine(yaml);
+        sb.Append(yaml);
         sb.AppendLine("---\n");
     }
 
@@ -29,9 +30,9 @@ internal static class RenderHelper
     }
 
 
-    public static void RenderPages(Options opt, IEnumerable<Entity> entitiesById, Config config)
+    public static void RenderPages(Options opt, IEnumerable<Entity> entities, Config config)
     {
-        foreach (var entity in entitiesById)
+        foreach (var entity in entities)
         {
             if (!entity.IsRootExportable
                 || (opt.ExcludeDeleted && entity.IsDeleted)
@@ -50,9 +51,9 @@ internal static class RenderHelper
         try
         {
             var basepath = options.OutDir;
-            if (options.UseTypeForFolder && rootEntity.Properties.GetValueOrDefault("type", "_other") is string type)
+            if (options.UsePropertyForFolder is not null && rootEntity.Properties.GetValueOrDefault(options.UsePropertyForFolder, "_other") is string folder)
             {
-                basepath = Path.Combine(basepath, type);
+                basepath = Path.Combine(basepath, folder);
             }
             Directory.CreateDirectory(basepath);
 
@@ -74,10 +75,23 @@ internal static class RenderHelper
 
     private static void RenderChildren(double rootPageId, Entity entity, StringBuilder sb, Config config, Options options, int indentLevel = 0)
     {
-        var filtered = !options.ExportOnlyPageChildren ? entity.Children : entity.Children.Where(c => c.RawProperties["~:block/page"] is double pageId && pageId == rootPageId);
+        var filtered = !options.ExportOnlyPageChildren ? entity.Children : entity.Children.Where(c => rootPageId.Equals(c.PageId));
+        var islist = false;
+        var counter = 0;
         foreach (var child in filtered)
         {
-            sb.Append(new String('\t', indentLevel)).Append("- ");
+            if (child.RawProperties.ContainsKey("~:logseq.property/order-list-type"))
+            {
+                if (!islist) counter = 0;
+                counter++;
+                islist = true;
+            }
+            else
+            {
+                islist = false;
+            }
+
+            sb.Append(new String('\t', indentLevel)).Append(islist ? $"{counter}. " : "- ");
 
             if (child.IsPage)
             {
@@ -92,7 +106,8 @@ internal static class RenderHelper
 
             sb.Append(child.Contents);
 
-            if (child.Properties.TryGetValue("tags", out object? value) && value is object[] tags)
+            var tags = (object[]?)child.Properties.GetValueOrDefault("tags", null);
+            if (tags is not null)
             {
                 sb.Append(' ').Append(String.Join(" ", tags.Select(tag => $"#{tag}")));
             }

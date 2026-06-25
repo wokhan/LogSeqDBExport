@@ -4,7 +4,7 @@ namespace LogSeqDBExport.Models;
 /// Represents a database identifier (schema entry) and provides value conversion
 /// logic based on the declared type and cardinality.
 /// </summary>
-public record PropertyType(object? Name, bool IsBuiltIn, bool IsArray, Converter<object?, object?> Converter, bool IsRefType)
+public record PropertyType(double Id, object? Name, bool IsBuiltIn, bool IsArray, Converter<object?, object?> Converter, bool IsRefType)
 {
     internal const string DBIDENT = "~:db/ident";
     private const string PROPERTY_PUBLIC = "~:logseq.property/public?";
@@ -18,6 +18,7 @@ public record PropertyType(object? Name, bool IsBuiltIn, bool IsArray, Converter
 
     public static PropertyType FromSourceEntries(IEnumerable<SourceEntry> sourceEntities)
     {
+        var id = sourceEntities.First().Id;
         var name = sourceEntities.FirstOrDefault(se => se.Name == DBIDENT)?.Value;
         var title = sourceEntities.FirstOrDefault(se => se.Name == TITLE)?.Value;
         var isBuiltIn = (bool)(sourceEntities.FirstOrDefault(se => se.Name == PROPERTY_BUILTIN)?.Value ?? false);
@@ -46,17 +47,19 @@ public record PropertyType(object? Name, bool IsBuiltIn, bool IsArray, Converter
             _ => x => x
         };
 
-        return new PropertyType(name, isBuiltIn, isArray, converter, isRefType);
+        return new PropertyType(id, name, isBuiltIn, isArray, converter, isRefType);
     }
 
 
-    internal object? GetValue(IEnumerable<object?> enumerable)
+    internal object? GetValue(IEnumerable<SourceEntry> enumerable)
     {
+        var x = enumerable.First().Value is string s && s.Contains("with a deadline"); 
         if (IsArray)
         {
-            return enumerable.Select(x => Converter(x)).ToArray();
+            return enumerable.Select(entry => Converter(entry.Value))
+                             .ToArray();
         }
 
-        return Converter(enumerable.First());
+        return Converter(enumerable.MaxBy(e => e.Transaction)!.Value);
     }
 }
