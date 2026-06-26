@@ -35,6 +35,7 @@ internal static class RenderHelper
         foreach (var entity in entities)
         {
             if (!entity.IsRootExportable
+                || entity.Rendered
                 || (opt.ExcludeDeleted && entity.IsDeleted)
                 || (entity.Contents is not null && config.Exclusions.Contains(entity.Contents))
                 || (opt.ResolveAliases && entity.AliasOf is not null))
@@ -66,6 +67,8 @@ internal static class RenderHelper
             RenderChildren(rootEntity.Id, rootEntity, sb, config, options, 0);
 
             File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+
+            rootEntity.Rendered = true;
         }
         catch (Exception ex)
         {

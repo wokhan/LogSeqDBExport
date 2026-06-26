@@ -18,6 +18,8 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties) : IC
     private const string BLOCK_PAGE = "~:block/page";
     internal static readonly string EmptyUUID = Guid.Empty.ToString("N");
 
+    public bool Rendered { get; set; }
+    
     public double Id { get; } = id;
 
     private string? _uuid;
@@ -39,7 +41,7 @@ internal class Entity(double id, Dictionary<string, object?> rawProperties) : IC
 
     public bool IsRootExportable => Properties.TryGetValue("tags", out var tags) && tags is object[] propArray && propArray.ContainsAny("Page", "Journal");
 
-    private bool? _istag; 
+    private bool? _istag;
     public bool IsTag => _istag ??= Properties.TryGetValue("tags", out var tags) && tags is object[] propArray && propArray.Contains("Tag");
 
     public bool IsPage => Properties.TryGetValue("tags", out var tags) && tags is object[] tagsArray && tagsArray.Contains("Page");

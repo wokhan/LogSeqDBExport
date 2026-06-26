@@ -69,7 +69,15 @@ internal static partial class EntitiesManager
             titleStr = FormatDateRef(titleStr, config.DateMappingReg.Key, config.DateMappingReg.Value);
             titleStr = FixTilde(titleStr);
 
-            entity.Contents = titleStr;
+            var cnt = 0;
+            if (IsPage(entity) && ((cnt = entitiesById.Values.Count(e => e.Contents == titleStr)) > 1))
+            {
+                entity.Contents = $"{titleStr}_{cnt - 1}";
+            }
+            else
+            {
+                entity.Contents = titleStr;
+            }
         }
 
         foreach (var property in entity.RawProperties)
@@ -117,7 +125,7 @@ internal static partial class EntitiesManager
     private static void SetMappedProperty(Entity entity, Config.MappingConfig mapping, string? targetPropertyKey, object? targetValue)
     {
         var formattedValue = (object?)(targetValue as object[])?.Select(v => String.Format(mapping.Format, v)).ToArray() ?? String.Format(mapping.Format, targetValue);
-        
+
         switch (mapping.Mode)
         {
             case Config.ModeType.Property:
